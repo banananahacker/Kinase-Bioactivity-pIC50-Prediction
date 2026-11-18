@@ -81,12 +81,16 @@ Notes: All tunes were based of EFGR data and kept that way for VEGFR2 and HER2.
 * **Generalization to Novel Scaffolds:** Across all three targets, the models substantially outperform the mean baseline, achieving test $R^2$ values between **0.45 and 0.54** and  RMSEs (**0.84 to 0.95**) on completely unseen chemical scaffolds in the isolated testing group.
 * **Random Forest vs. Gradient Boosting on Rare Scaffolds:** On EGFR, `HistGradientBoostingRegressor` achieved a slightly higher cross-validation score ($R^2 = 0.6068$) than `RandomForestRegressor` ($R^2 = 0.5990$). However, when evaluated on the held-out test set—which is populated by the rarest and smallest scaffold clusters due to size-sorted scaffold splitting—Random Forest generalized better (Test $R^2 = 0.4720$, $\text{RMSE} = 0.9519$) than Gradient Boosting (Test $R^2 = 0.4404$, $\text{RMSE} = 0.9799$). Random Forest also led in cross-validation for both VEGFR2 and HER2.
 
+## Limitations
+- Hyperparameters were tuned on EGFR only and reused for VEGFR2 and HER2.
+- Possible overfitting to training data
+
 ---
 
 ## Installation & Usage
 
 ### Prerequisites
-Python 3.X (replace with the output of `python --version`). Install dependencies:
+Python 3.11. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
