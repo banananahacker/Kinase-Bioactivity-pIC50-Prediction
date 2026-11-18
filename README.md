@@ -86,10 +86,11 @@ Notes: All tunes were based of EFGR data and kept that way for VEGFR2 and HER2.
 ## Installation & Usage
 
 ### Prerequisites
-Install the required dependencies via `pip` or `conda`:
+Python 3.X (replace with the output of `python --version`). Install dependencies:
 ```bash
-pip install numpy pandas scikit-learn rdkit chembl_webresource_client
+pip install -r requirements.txt
 ```
+If the `rdkit` pip install fails, use conda instead: `conda install -c conda-forge rdkit`.
 
 ### Running the Pipeline
 Pass any valid ChEMBL Target ID as a command-line argument (defaults to `CHEMBL203` if omitted):
