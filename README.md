@@ -11,6 +11,7 @@ To prevent data leakage and accurately simulate real-world drug discovery genera
 * `pull_chembl_raw.py` — Queries the ChEMBL API for uncensored (`=`), nanomolar (`nM`) $IC_{50}$ records for a given target ID and exports them to `<TARGET>_raw.csv`.
 * `filter_chembl_clean.py` — Multi-core data curation and chemical standardization script using RDKit. Removes mutant assays, non-binding assays, duplicates, inorganic/acyclic compounds, and extreme statistical outliers, outputting `<TARGET>_clean.csv`.
 * `train_model_v2.py` — Generates Morgan fingerprints and chemical descriptors, performs an 80/20 Murcko scaffold split, benchmarks multiple regression models via 5-fold `GroupKFold` cross-validation, and evaluates the top model against a mean-baseline on the held-out test set.
+* `predict.py` — Trains a Random Forest on `<TARGET>_clean.csv` (same features and settings as `train_model_v2.py`) and predicts the $pIC_{50}$ of a single molecule from its SMILES string.
 
 ---
 
@@ -21,7 +22,7 @@ Raw ChEMBL bioactivity data contains significant experimental noise, varying ass
 * **Wild-Type Binding Consistency:** Excludes any record where `assay_variant_mutation` is populated or where `assay_description` references mutations (`mutant`, `L858R`, `T790M`, `L861Q`, `C797S`). Restricts data strictly to Assay Type `B` (Binding) to eliminate ~200x potency discrepancies observed between functional (`F`) and binding (`B`) assays.
 * **Deduplication:** Filters out ChEMBL-flagged `potential_duplicate` records.
 * **Chemical Standardization:** Parallelized across CPU cores using RDKit's `rdMolStandardize`. Strips salts (`LargestFragmentChooser`), neutralizes charges (`Uncharger`), and filters out inorganic molecules (must contain carbon) and acyclic molecules (must contain at least one ring to produce a valid Murcko scaffold).
-* **Target Transformation & Outlier Removal:** Converts $IC_{50}$ (nM) to $pIC_{50}$ via $pIC_{50} = 9 - \log_{10}(IC_{50\text{ [nM]}})$. Removes extreme values ($pIC_{50} \ge 12$ and $pIC_{50} \le 3$).
+* **Target Transformation & Outlier Removal:** Converts $IC_{50}$ (nM) to $pIC_{50}$ via $pIC_{50} = 9 - \log_{10}(IC_{50\text{ [nM]}})$. Removes extreme values ($3 < pIC_{50} < 12$”).
 * **Aggregation:** Groups duplicate standardized SMILES strings and takes the **median** $pIC_{50}$ (alongside standard deviation and measurement count) to ensure robustness against repeated measurements.
 
 #### Data Funnel Across Targets
@@ -55,11 +56,16 @@ All models are evaluated on the training split using 5-fold **GroupKFold Cross-V
 1. **Baseline Model:** Predicts the mean training $pIC_{50}$ for all inputs to establish a zero-correlation floor ($R^2 \approx 0$).
 2. **Random Forest Regressor:** `n_estimators=500, max_depth=None, min_samples_leaf=1`. Tuning showed unconstrained trees outperformed depth-limited (`max_depth=10, 15`) and leaf-pruned (`min_samples_leaf=3, 8`) variants.
 3. **Ridge Regression Pipeline:** Uses a `ColumnTransformer` to apply `StandardScaler` exclusively to the 3 continuous descriptors while passing the 2,048 binary fingerprint bits through unmodified. Tuned across $\alpha \in \{0.1, 10, 100, 1000\}$, with $\alpha = 100$ achieving optimal regularization.
-4. **Histogram-Based Gradient Boosting (`HistGradientBoostingRegressor`):** Tuned across different `learning_rate`, `max_iter`, and `max_leaf_nodes` and shows that  `learning_rate=0.05, max_iter=600, max_leaf_nodes=50` outperformed other variants.
+4. **Histogram-Based Gradient Boosting (`HistGradientBoostingRegressor`):** Tuned across different `learning_rate`, `max_iter`, and `max_leaf_nodes` and showed that `learning_rate=0.05, max_iter=600, max_leaf_nodes=50` outperformed other variants.
 
-Notes: All tunes were based of EFGR data and kept that way for VEGFR2 and HER2.
+Notes: All hyperparameter tuning was done on EGFR data and reused unchanged for VEGFR2 and HER2.
 
 ---
+
+# 4. Predict pIC50 for a new molecule (target first, then a quoted SMILES)
+python predict.py CHEMBL203 "COc1cc2ncnc(Nc3cccc(Cl)c3)c2cc1OC"
+
+Notes: `predict.py` retrains the model on each call, using the 80% scaffold-split training set. Predictions for molecules unlike the training data (novel scaffolds) are less reliable, with test $R^2$ around 0.45-0.54 (see Results). This is such that model is never evaluated on testing set to prevent data leaks.
 
 ## Results & Benchmarks
 
@@ -78,7 +84,7 @@ Notes: All tunes were based of EFGR data and kept that way for VEGFR2 and HER2.
 | **HER2** (`CHEMBL1824`) | 0.2359 | 0.9587 | 1.2420 | -0.0005 | **0.8441** | **0.5378** |
 
 ### Key Takeaways
-* **Generalization to Novel Scaffolds:** Across all three targets, the models substantially outperform the mean baseline, achieving test $R^2$ values between **0.45 and 0.54** and  RMSEs (**0.84 to 0.95**) on completely unseen chemical scaffolds in the isolated testing group.
+* **Generalization to Novel Scaffolds:** Across all three targets, the models substantially outperform the mean baseline, achieving test $R^2$ values between **0.45 and 0.54** and RMSEs of **0.84 to 0.95** on completely unseen chemical scaffolds in the isolated testing group.
 * **Random Forest vs. Gradient Boosting on Rare Scaffolds:** On EGFR, `HistGradientBoostingRegressor` achieved a slightly higher cross-validation score ($R^2 = 0.6068$) than `RandomForestRegressor` ($R^2 = 0.5990$). However, when evaluated on the held-out test set—which is populated by the rarest and smallest scaffold clusters due to size-sorted scaffold splitting—Random Forest generalized better (Test $R^2 = 0.4720$, $\text{RMSE} = 0.9519$) than Gradient Boosting (Test $R^2 = 0.4404$, $\text{RMSE} = 0.9799$). Random Forest also led in cross-validation for both VEGFR2 and HER2.
 
 ## Limitations
