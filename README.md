@@ -63,9 +63,7 @@ Notes: All hyperparameter tuning was done on EGFR data and reused unchanged for 
 ---
 
 ### 4. Predict pIC50 for a new molecule (target first, then a quoted SMILES)
-python predict.py CHEMBL203 "COc1cc2ncnc(Nc3cccc(Cl)c3)c2cc1OC"
-
-Notes: `predict.py` retrains the model on each call, using the 80% scaffold-split training set. Predictions for molecules unlike the training data (novel scaffolds) are less reliable, with test $R^2$ around 0.45-0.54 (see Results). This is such that model is never evaluated on testing set to prevent data leaks.
+`predict.py` retrains the model on each call, using the 80% scaffold-split training set. Predictions for molecules unlike the training data (novel scaffolds) are less reliable, with test $R^2$ around 0.45-0.54 (see Results). This is such that model is never evaluated on testing set to prevent data leaks.
 
 ## Results & Benchmarks
 
@@ -114,6 +112,9 @@ python filter_chembl_clean.py CHEMBL203
 
 # 3. Perform scaffold split, cross-validation, and test evaluation
 python train_model_v2.py CHEMBL203
+
+# 4. Predict pIC50 from models
+python predict.py CHEMBL203 "[TARGET_SMILES]"
 ```
 
 To run the pipeline for **VEGFR2** or **HER2**, replace `CHEMBL203` with `CHEMBL279` or `CHEMBL1824` respectively.
