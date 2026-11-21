@@ -1,4 +1,4 @@
-# Kinase Bioactivity ($pIC_{50}$) Prediction Pipeline (v2)
+# Kinase Bioactivity $pIC_{50}$ Prediction Pipeline (v2)
 
 An end-to-end machine learning pipeline for retrieving, curating, standardizing, and modeling small-molecule bioactivity data from the ChEMBL database. This project predicts half-maximal inhibitory concentration ($pIC_{50}$) values across three clinically relevant receptor tyrosine kinases: **EGFR** (`CHEMBL203`), **VEGFR2** (`CHEMBL279`), and **HER2** (`CHEMBL1824`).
 
