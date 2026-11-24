@@ -88,6 +88,7 @@ Notes: All hyperparameter tuning was done on EGFR data and reused unchanged for 
 ## Limitations
 - Hyperparameters were tuned on EGFR only and reused for VEGFR2 and HER2.
 - Possible overfitting to training data
+- Because scaffolds are sorted into training and testing by size, the testing data isn't random but rather the least common scaffolds
 
 ---
 
